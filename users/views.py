@@ -1,12 +1,31 @@
+
+
 from rest_framework import generics, permissions
 from rest_framework.response import Response
 from rest_framework.parsers import JSONParser
+from rest_framework_simplejwt.tokens import RefreshToken
 from .models import CustomUser
 from .serializers import UserSerializer
 
 class UserCreateView(generics.CreateAPIView):
     queryset = CustomUser.objects.all()
     serializer_class = UserSerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        user = serializer.save()
+        
+        refresh = RefreshToken.for_user(user)
+        tokens = {
+            'refresh': str(refresh),
+            'access': str(refresh.access_token),
+        }
+
+        response_data = serializer.data
+        response_data.update(tokens)
+        
+        return Response(response_data)
 
 class UpdateProfilePictureView(generics.UpdateAPIView):
     queryset = CustomUser.objects.all()
